@@ -1,0 +1,78 @@
+apt-get update
+apt-get install docker.io -y
+systemctl enable docker.service
+systemctl restart docker.service
+apt-get update
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+apt-get update
+apt-get install kubeadm kubelet kubectl -y
+
+
+kubeadm init --pod-network-cidr=10.244.0.0/16
+sudo kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+We will get the Two commnd to run in master and other command to add worker node in master
+------------------------------------------------------------------
+To start using your cluster, you need to run the following as a regular user:
+
+ 1. mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+2.kubeadm join
+---------------------------------------------------------------------------
+now we will get the below output in master
+root@chbs01:~# kubectl get pods -A
+NAMESPACE     NAME                             READY   STATUS    RESTARTS   AGE
+kube-system   coredns-6955765f44-5ddvm         1/1     Running   0          6m25s
+kube-system   coredns-6955765f44-6prxt         1/1     Running   0          6m25s
+kube-system   etcd-chbs01                      1/1     Running   0          6m40s
+kube-system   kube-apiserver-chbs01            1/1     Running   0          6m40s
+kube-system   kube-controller-manager-chbs01   1/1     Running   0          6m39s
+kube-system   kube-flannel-ds-amd64-gqgjk      1/1     Running   0          4m8s
+kube-system   kube-proxy-jrk4n                 1/1     Running   0          6m25s
+kube-system   kube-scheduler-chbs01            1/1     Running   0          6m39s
+----------------------------------------------------------------------------------
+
+root@chbs01:~# kubectl get nodes
+NAME     STATUS   ROLES    AGE   VERSION
+chbs01   Ready    master   17m   v1.17.3
+-----------------------------------------
+root@chbs01:~# kubectl get pods
+
+----------------------------------------
+root@chbs01:~# kubectl get pods -o wide
+
+---------------------------------------
+#kubectl get services :  to check kubernetes   ClusterIP 
+-----------------------------------------------
+
+kubectl get services
+kubectl create deployment --image nginx my-nginx
+kubectl get deployment
+kubectl get pods
+kubectl get nodes
+kubectl scale deployment --replicas=2 my-nginx
+
+kubectl expose deployment my-nginx --port=8081 --target-port=80 --type=LoadBalancer
+
+
+
+
+
+Note:
+#kubeadm token list
+And check the date in the EXPIRES column. If it has expired, create a new token.
+#kubeadm token create --print-join-command
+You will now be able to join a new node using the given command
+
+kubectl patch svc <svc-name> -n <namespace> -p '{"spec": {"type": "LoadBalancer", "externalIPs":["172.31.71.218"]}}'
+
+
+
+
+
+
+
+

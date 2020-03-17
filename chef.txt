@@ -1,0 +1,70 @@
+Download the latest Chef Workstation:
+wget  https://packages.chef.io/files/stable/chef-workstation/0.2.43/ubuntu/18.04/chef-workstation_0.2.43-1_amd64.deb
+
+Install Chef Workstation:
+dpkg -i chef-workstation_*.deb
+
+Create your Chef repository.
+chef generate repo chef-repo
+
+Create a .chef subdirectory. The .chef subdirectory will store your Knife configuration file and your .pem files 
+that are used for RSA key pair authentication with the Chef server
+
+mkdir ~/chef-repo/.chef
+cd chef-repo
+
+
+in .chef
+
+configure/updatge .pem and .rb file with servers via chef login link "download starter kit"  for communiccation between server and workstation
+
+create cookbook:
+/chef-repo# chef generate cookbook cookbooks/myweb2
+
+go to path : /chef-repo/cookbooks/myweb2/recipes# vim apache1.rb
+
+execute "apt-get update" do
+  command "apt-get update"
+end
+package "apache2" do
+  action :install
+end
+service "apache2" do
+  action [:enable, :start]
+end
+
+
+---
+
+execute "apt-get update" do
+  command "apt-get update"
+end
+package 'nginx' do
+  action :install
+end
+service 'nginx' do
+  action [ :enable, :start ]
+end
+----
+update:
+knife upload cookbook cookbooks/myweb2/
+
+
+
+update the host ip in /etc/hosts in both workstation and node
+
+cd ~/chef-repo/.chef   (first enter this path and run the command)
+
+knife bootstrap <Node ip> --ssh-user ubuntu --sudo --ssh-identity-file /home/ubuntu/kub/kubernetes.pem --node-name node2 --run-list 'recipe[myweb2::apache1]'
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,72 @@
+
+Python will install on ansible server and nodes
+
+172.31.6.59   node2  15.206.90.114  web
+172.31.7.109  node3  13.233.2.88  app
+172.31.14.211 node1  35.154.19.68 ansible server
+
+create /etc/ansible/hosts
+grouping ip address for their need like that
+[web]
+172.31.6.59 --- will install nginx
+
+[app]
+172.31.7.109 --- will install apache2
+
+
+copy public key of ansible server and paste into other nodes for ssh working without entering key. and then do ansible -m ping command
+
+root@node1:~# ansible -m ping all
+172.31.7.109 | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+172.31.6.59 | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+
+-------------
+
+root@node1:~# ansible -m ping web
+172.31.6.59 | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+---------------------------------
+
+
+create .yml file 
+
+paste the code to install nginx and apache  --- in Hosts enter group name web and for apache enter app it will install their ip addrss
+
+nginx.yml
+---
+- hosts: web
+  tasks:
+    - name: Installs nginx web server
+      apt: pkg=nginx state=installed update_cache=true
+      notify:
+        - start nginx
+
+  handlers:
+    - name: start nginx
+      service: name=nginx state=started
+
+
+------------------
+apache2.yml
+
+---
+- hosts: app
+  sudo: yes
+  tasks:
+    - name: install apache2
+      apt: name=apache2 update_cache=yes state=latest
+
+----------------------------
+
+ ansible-playbook -s apache2.yml
+ ansible-playbook -s nginx.yml
+
+
+
+
