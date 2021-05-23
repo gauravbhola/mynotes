@@ -1,0 +1,304 @@
+vm1 20.193.229.192  10.0.0.4
+
+vm2 104.211.99.59  10.0.0.5  master
+
+vm3 13.71.7.80  10.0.0.6
+
+curl 20.193.229.192:30555
+curl 104.211.99.59:30555
+curl 13.71.7.80:30555
+
+apt-get update
+apt-get install docker.io -y
+systemctl enable docker.service
+systemctl restart docker.service
+apt-get update
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+apt-get update
+apt-get install kubeadm kubelet kubectl -
+
+-------------------------------------------------
+run only master node:
+
+kubeadm init --pod-network-cidr=10.244.0.0/16
+kubectl get pods -A    kubectl get pods --all-namespaces
+sudo kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+kubectl get deployment
+
+kubectl get nodes
+
+kubectl get pods
+
+kubectl get services
+
+kubectl create deployment --image nginx --replicas=2 my-nginx
+
+kubectl scale deployment --replicas=2 my-nginx
+
+kubectl expose deployment my-nginx --port=8081 --target-port=80 --type=ClusterIP
+kubectl expose deployment my-nginx --port=8081 --target-port=80 --type=NodePort
+kubectl expose deployment my-nginx --port=8081 --target-port=80 --type=LoadBalancer --external-ip=13.71.39.184
+
+
+kubectl patch svc my-nginx -p '{"spec": {"type": "NodePort"}}'
+kubectl patch svc my-nginx  -p '{"spec": {"type": "LoadBalancer", "externalIPs":["13.71.39.183"]}}'
+
+kubectl describe svc my-nginx
+------------------------------------------------------------------------------------------------
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 10.0.0.5:6443 --token 298ze4.fdgnr5c12rvn6wjx \
+    --discovery-token-ca-cert-hash sha256:29c35564e577c9b1227cd0e4589507f3a2883d13e7ffc0fb4fc2b1aa28554b50
+
+-----------------------------------------------------------------------------------------------
+
+root@vm1:~# kubectl get nodes
+NAME   STATUS   ROLES                  AGE   VERSION
+vm1    Ready    control-plane,master   11m   v1.20.2
+vm2    Ready    <none>                 56s   v1.20.2
+vm3    Ready    <none>                 39s   v1.20.2
+-------------
+defaults
+root@vm1:~# kubectl get deployment
+No resources found in default namespace.
+root@vm1:~# kubectl get replicaset
+No resources found in default namespace.
+root@vm1:~# kubectl get pods
+No resources found in default namespace.
+------------------------------------------
+defaults
+root@vm1:~# kubectl get services
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   13m
+--------------------------------------------------------------------
+root@vm1:~# kubectl get pods -A
+NAMESPACE     NAME                          READY   STATUS    RESTARTS   AGE
+kube-system   coredns-74ff55c5b-p728b       1/1     Running   0          14m
+kube-system   coredns-74ff55c5b-qgx56       1/1     Running   0          14m
+kube-system   etcd-vm1                      1/1     Running   0          15m
+kube-system   kube-apiserver-vm1            1/1     Running   0          15m
+kube-system   kube-controller-manager-vm1   1/1     Running   0          15m
+kube-system   kube-flannel-ds-46rgq         1/1     Running   0          4m32s
+kube-system   kube-flannel-ds-4fmsh         1/1     Running   0          4m49s
+kube-system   kube-flannel-ds-d77zt         1/1     Running   0          13m
+kube-system   kube-proxy-gj5jw              1/1     Running   0          14m
+kube-system   kube-proxy-vvg8v              1/1     Running   0          4m49s
+kube-system   kube-proxy-x227x              1/1     Running   0          4m32s
+kube-system   kube-scheduler-vm1            1/1     Running   0          15m
+-----------------------------------------------------------------------------
+
+root@vm1:~# docker login
+-------------------------------
+
+root@vm1:~# kubectl create deployment --image nginx my-nginx
+deployment.apps/my-nginx created
+root@vm1:~# kubectl get  deployment
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+my-nginx   1/1     1            1           19s
+root@vm1:~# kubectl get replicaset
+NAME                  DESIRED   CURRENT   READY   AGE
+my-nginx-6b74b79f57   1         1         1       35s
+root@vm1:~# kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+my-nginx-6b74b79f57-k49zz   1/1     Running   0          42s
+---------------------------------------------------------------
+root@vm1:~# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP           NODE   NOMINATED NODE   READINESS GATES
+my-nginx-6b74b79f57-k49zz   1/1     Running   0          90s   10.244.1.2   vm2    <none>           <none>
+---------------------------------
+root@vm1:~# kubectl get services
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   22m
+------------------------------------------------------------------
+
+root@vm1:~# kubectl expose deployment my-nginx --port=8081 --target-port=80 --type=ClusterIP
+service/my-nginx exposed
+root@vm1:~# kubectl get services
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP    23m
+my-nginx     ClusterIP   10.102.14.216   <none>        8081/TCP   5s
+-----------------------------------------------------------
+root@vm1:~# curl 10.244.1.2:80   ( check through pod IP and port)
+-----------------------------
+root@vm1:~# curl 10.102.14.216:8081 (check through cluster IP and port)
+-------------------------------------------------
+root@vm1:~# kubectl describe svc my-nginx
+Name:              my-nginx
+Namespace:         default
+Labels:            app=my-nginx
+Annotations:       <none>
+Selector:          app=my-nginx
+Type:              ClusterIP
+IP Families:       <none>
+IP:                10.102.14.216
+IPs:               10.102.14.216
+Port:              <unset>  8081/TCP
+TargetPort:        80/TCP
+Endpoints:         10.244.1.2:80
+Session Affinity:  None
+Events:            <none>
+-----------------------------------------------------
+root@vm1:~# kubectl scale deployment --replicas=3 my-nginx
+deployment.apps/my-nginx scaled
+root@vm1:~# kubectl get deployment
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+my-nginx   2/3     3            2           12m
+root@vm1:~# kubectl get deployment
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+my-nginx   2/3     3            2           12m
+root@vm1:~# kubectl get replicaset
+NAME                  DESIRED   CURRENT   READY   AGE
+my-nginx-6b74b79f57   3         3         3       12m
+root@vm1:~# kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+my-nginx-6b74b79f57-gvsvz   1/1     Running   0          30s
+my-nginx-6b74b79f57-k49zz   1/1     Running   0          12m
+my-nginx-6b74b79f57-vhkxp   1/1     Running   0          30s
+root@vm1:~# kubectl get deployment
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+my-nginx   3/3     3            3           12m
+------------------------------------
+
+root@vm1:~# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE    IP           NODE   NOMINATED NODE   READINESS GATES
+my-nginx-6b74b79f57-gvsvz   1/1     Running   0          107s   10.244.2.2   vm3    <none>           <none>
+my-nginx-6b74b79f57-k49zz   1/1     Running   0          13m    10.244.1.2   vm2    <none>           <none>
+my-nginx-6b74b79f57-vhkxp   1/1     Running   0          107s   10.244.1.3   vm2    <none>           <none>
+
+---------------------------------------------------------------------------
+root@vm1:~# kubectl delete pods my-nginx-6b74b79f57-gvsvz
+pod "my-nginx-6b74b79f57-gvsvz" deleted
+root@vm1:~# kubectl get deployment
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+my-nginx   3/3     3            3           19m
+root@vm1:~# kubectl get replicaset
+NAME                  DESIRED   CURRENT   READY   AGE
+my-nginx-6b74b79f57   3         3         3       19m
+root@vm1:~# kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+my-nginx-6b74b79f57-k49zz   1/1     Running   0          20m
+my-nginx-6b74b79f57-vhkxp   1/1     Running   0          8m18s
+my-nginx-6b74b79f57-wrh69   1/1     Running   0          77s
+
+-------------------------------------------------------------------------
+Pod ip will be change once any pod deleted but service ip is same.
+root@vm1:~# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP           NODE   NOMINATED NODE   READINESS GATES
+my-nginx-6b74b79f57-k49zz   1/1     Running   0          22m     10.244.1.2   vm2    <none>           <none>
+my-nginx-6b74b79f57-vhkxp   1/1     Running   0          9m49s   10.244.1.3   vm2    <none>           <none>
+my-nginx-6b74b79f57-wrh69   1/1     Running   0          2m48s   10.244.2.3   vm3    <none>           <none>
+root@vm1:~# kubectl delete pods my-nginx-6b74b79f57-vhkxp
+pod "my-nginx-6b74b79f57-vhkxp" deleted
+root@vm1:~# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP           NODE   NOMINATED NODE   READINESS GATES
+my-nginx-6b74b79f57-k49zz   1/1     Running   0          23m     10.244.1.2   vm2    <none>           <none>
+my-nginx-6b74b79f57-r8jgl   1/1     Running   0          41s     10.244.2.4   vm3    <none>           <none>
+my-nginx-6b74b79f57-wrh69   1/1     Running   0          3m50s   10.244.2.3   vm3    <none>           <none>
+------------------------------------------
+root@vm1:~# kubectl get services
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP    46m
+my-nginx     ClusterIP   10.102.14.216   <none>        8081/TCP   23m
+root@vm1:~# kubectl patch svc my-nginx -p '{"spec": {"type": "NodePort"}}'
+service/my-nginx patched
+root@vm1:~# kubectl get services
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          47m
+my-nginx     NodePort    10.102.14.216   <none>        8081:31039/TCP   23m
+-----------------------------------------------------------------------------------
+root@vm1:~# curl vm1:31039   curl 10.0.0.4:31039
+root@vm1:~# curl vm2:31039   curl 10.0.0.5:31039
+root@vm1:~# curl vm3:31039   curl 10.0.0.6:31039   (check with node IP with ports)
+-------------------------------------------------
+
+check from public ip 
+52.172.181.103:31039
+40.80.94.133:31039
+40.80.94.1:31039
+-----------------------
+
+another configuration:
+root@vm2:~# kubectl get services
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          13m
+my-nginx     NodePort    10.110.87.184   <none>        8081:32268/TCP   10s
+------------
+root@vm2:~# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP           NODE   NOMINATED NODE   READINESS GATES
+my-nginx-6b74b79f57-8sctq   1/1     Running   0          2m40s   10.244.1.2   vm1    <none>           <none>
+my-nginx-6b74b79f57-bdzhw   1/1     Running   0          2m40s   10.244.2.3   vm3    <none>           <none>
+my-nginx-6b74b79f57-lpbg6   1/1     Running   0          4m52s   10.244.2.2   vm3    <none>           <none>
+----------------
+root@vm2:~# kubectl get nodes
+NAME   STATUS   ROLES                  AGE     VERSION
+vm1    Ready    <none>                 7m45s   v1.20.2
+vm2    Ready    control-plane,master   14m     v1.20.2
+vm3    Ready    <none>                 7m32s   v1.20.2
+--------------------------------
+
+vm1 52.140.65.215:32268  10.0.0.4:32268
+
+vm2 104.211.99.59:32268  10.0.0.5:32268  master
+
+vm3 13.71.7.80:32268  10.0.0.6:32268
+---------------------
+
+root@vm2:~# kubectl exec -it my-nginx-6b74b79f57-8sctq /bin/bash
+----------------------
+By default Nginx Web server default location is at /usr/share/nginx/html
+
+13.71.39.183 (pubip3)
+
+
+
+=================================
+root@vm2:~# kubectl scale deployment --replicas=4 my-nginx
+deployment.apps/my-nginx scaled
+root@vm2:~# kubectl get deployment
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+my-nginx   4/4     4            4           78m
+root@vm2:~# kubectl get replicaset
+NAME                  DESIRED   CURRENT   READY   AGE
+my-nginx-6b74b79f57   4         4         4       78m
+root@vm2:~# kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+my-nginx-6b74b79f57-8sctq   1/1     Running   1          76m
+my-nginx-6b74b79f57-b8ng8   1/1     Running   0          74s
+my-nginx-6b74b79f57-lpbg6   1/1     Running   0          78m
+my-nginx-6b74b79f57-xz97n   1/1     Running   0          38s
+root@vm2:~# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP           NODE   NOMINATED NODE   READINESS GATES
+my-nginx-6b74b79f57-8sctq   1/1     Running   1          76m   10.244.1.3   vm1    <none>           <none>
+my-nginx-6b74b79f57-b8ng8   1/1     Running   0          84s   10.244.2.4   vm3    <none>           <none>
+my-nginx-6b74b79f57-lpbg6   1/1     Running   0          79m   10.244.2.2   vm3    <none>           <none>
+my-nginx-6b74b79f57-xz97n   1/1     Running   0          48s   10.244.1.4   vm1    <none>           <none>
+
+one node down========= vm1
+
+
+kubectl patch svc my-nginx  -p '{"spec": {"type": "LoadBalancer", "externalIPs":["13.71.39.183"]}}'
+
+kubectl patch svc my-nginx  -p '{"spec": {"type": "LoadBalancer", "externalIPs":["13.71.39.184"]}}'
+
+
+
+
+
