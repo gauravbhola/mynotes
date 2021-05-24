@@ -1,0 +1,42 @@
+sudo su -
+apt-get update
+apt-get install docker.io -y
+systemctl status docker.service
+systemctl enable docker.service
+systemctl restart docker.service
+docker --version
+docker ps 
+docker ps -a
+docker images
+docker login
+docker pull anyimagename
+docker run -it --name myfirtdocker -p 8081:80 nginx
+docker run -d --name myfirtdocker -p 8081:80 nginx
+curl IP:8081
+docker stop containerID
+docker start containerID
+docker rm containerID
+docker rmi imageName
+docker exec -it containerID /bin/bash (login into container)
+docker exec containerID ls -lart  (what ever commund need to run without entering container) 
+docker info
+ctrl+ D exit from container
+docker commit -m "anycomment" runningconatinerID Newimagename (creating image from running contanier) 
+docker push dockerhubaccount/newcreatedimage
+docker stop  $(docker ps -a -q) 
+docker rm  $(docker ps -a -q)
+docker image prune  This will remove all dangling images
+docker image prune -a   This will remove all images without at least one container associated to them
+docker volume create volumename
+docker run -d --name anyname -p hostport:conatinerport --mount source=volumename,destination=conatinerDIR imageName
+docker run -d --name anyname -p hostport:containerport -v anypathhostDIr:containerDIR imageName
+docker-compose --version
+need to install from the below two commnds
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+docker-compose.yml  created
+docker-compose up -d
+docker-compose down 
+
+http://IP:port/wp-admin  for webpress app
+
