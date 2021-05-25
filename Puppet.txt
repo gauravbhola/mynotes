@@ -1,0 +1,108 @@
+puppet master application and puppet agent application runs on managed nodes (client servers)
+Puppet agent will send facts to the puppet master and request a catalog in the particular interval.
+ The puppet master will compile and return that particular node’s catalog, 
+ using the sources of information it has access to
+Time must be set accurately on a puppet master as it will be acting as a certificate authority to sign 
+the certificates coming from the client nodes. We will use NTP for this purpose
+------------
+sudo apt update
+sudo apt install -y ntp ntpdate
+sudo ntpdate -u 0.ubuntu.pool.ntp.org
+timedatectl
+timedatectl list-timezones
+sudo timedatectl set-timezone 
+
+Puppet agent uses the hostname to communicate with the Puppet Server. 
+So, make sure the agent node can resolve the hostname of the Puppet Server. 
+Either setup /etc/hosts file or DNS server.
+
+sudo apt install tree
+tree /etc/apt/sources.list.d/
+
+wget https://apt.puppetlabs.com/puppet6-release-bionic.deb
+sudo dpkg -i puppet6-release-bionic.deb
+sudo apt update
+---------- above all for puppet master and agent------------------
+on Puppet server:--
+apt install -y puppetserver
+Memory configuration
+By default, Puppet Server JVM is configured to use 2GB of RAM. 
+You can always customize the memory usage depends on how much memory your master node has; 
+ensure that it is enough for managing all the nodes connected to it.
+
+vim /etc/default/puppetserver
+-Xms512m -Xmx512m    default:  -Xms2g -Xmx2g 
+vim /etc/puppetlabs/puppet/puppet.conf
+[master]
+dns_alt_names = puppet.dev.com,puppet
+
+[main]
+certname = puppet.dev.com
+server = puppet.dev.com
+environment = production
+runinterval = 15m
+
+Generate a root and intermediate signing CA for Puppet Server.
+sudo /opt/puppetlabs/bin/puppetserver ca setup
+you will get message Generation succeeded. Find your files in /etc/puppetlabs/puppet/ssl/ca
+sudo systemctl status puppetserver
+sudo systemctl start puppetserver
+sudo systemctl enable puppetserver
+
+sudo /opt/puppetlabs/bin/puppetserver ca list      (No certificates to list) as of now
+sudo /opt/puppetlabs/bin/puppetserver ca list --all  (List all of the signed and unsigned requests)
+sudo /opt/puppetlabs/bin/puppetserver ca sign --certname client.dev.com  (signed for particular node)
+sudo /opt/puppetlabs/bin/puppetserver ca sign --all  (signed for all nodes)
+sudo /opt/puppetlabs/bin/puppetserver ca revoke --certname <AGENT_NAME>    (for revoke)
+
+
+
+
+Now on puppet client:
+sudo apt install -y puppet-agent
+sudo vim /etc/puppetlabs/puppet/puppet.conf
+(Set server value as per your master hostname and certname as your client hostname)
+
+[main]
+certname = client.dev.com
+server = puppet.dev.com
+environment = production
+runinterval = 15m
+
+Start puppet agent on the node and make it start automatically on system boot.
+sudo /opt/puppetlabs/bin/puppet resource service puppet ensure=running enable=true
+validate through  systemctl status puppet.service
+Sign Agent Node Certificate on Master Server 
+sudo /opt/puppetlabs/bin/puppet agent --test
+--------------------------------------------------------
+sudo /opt/puppetlabs/bin/puppetserver ca sign --certname client.dev.com 
+output:
+Signed Certificates:
+    client.dev.com 
+root@client:~# /opt/puppetlabs/bin/puppet agent --test
+Info: Using configured environment 'production'
+Info: Retrieving pluginfacts
+Info: Retrieving plugin
+Info: Retrieving locales
+Info: Caching catalog for client.dev.com
+Info: Applying configuration version '1621936723'
+Notice: Applied catalog in 0.01 seconds
+-----------------------------------------------------------
+
+Create manifest
+Manifest is a data file which contains client configuration’s, 
+written in Puppet’s declarative language or a Ruby DSL
+
+sudo vim /etc/puppetlabs/code/environments/production/manifests/site.pp 
+node 'client.dev.com' { # Applies only to mentioned node. If nothing mentioned, applies to all.
+     file { '/tmp/puppetdir': # Resource type file
+             ensure => 'directory', # Create as a diectory
+             owner => 'root', # Ownership
+             group => 'root', # Group Name
+             mode => '0755', # Directory permissions
+          }
+}
+
+
+run on agent for taking updates
+sudo /opt/puppetlabs/bin/puppet agent --test
