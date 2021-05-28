@@ -1,0 +1,10 @@
+---
+- hosts: docker-server
+  gather_facts: no
+  tasks:
+    - name: delete and create the container
+      command: docker stop gaurav_image; docker rm -f gaurav_image; docker image rm -f gaurav_image; cd /opt/docker;
+      command: docker build -t gaurav_image .
+      command: docker run -d --name gaurav_image -p 8090:8080 gaurav_image
+      
+    
