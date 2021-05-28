@@ -3,13 +3,15 @@
   tasks:
     - name: Stop a container
       docker_container:
-      name: gaurav_image
-      state: stopped   
+        name: gaurav_image
+        state: stopped   
 
     - name: remove container
       docker_container:
-      name: gaurav_image
-      state: absent
+        name: gaurav_image
+        state: absent
 
     - name: build the image
       command: docker build -t gaurav_image /opt/docker/
+
+  
