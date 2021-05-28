@@ -11,6 +11,11 @@
         name: gaurav_image
         state: absent
 
+    - name: Remove image
+      docker_image:
+        state: absent
+        name: gaurav_image
+            
     - name: build the image
       command: docker build -t gaurav_image /opt/docker/
 
