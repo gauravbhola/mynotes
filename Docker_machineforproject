@@ -1,0 +1,51 @@
+during creating aws machine in user data
+pull code from github and push this in Docker conainter which have tomcat.
+#!/bin/sh
+sudo su -
+apt-get update
+apt-get install docker.io -y
+systemctl status docker.service
+systemctl enable docker.service
+systemctl restart docker.service
+useradd dockeradmin
+usermod -aG docker dockeradmin
+mkdir /opt/docker
+cd /opt/docker
+chown -R dockeradmin:dockeradmin /opt/docker
+----------------------------
+vim /etc/ssh/sshd_config
+PermitRootLogin yes
+PasswordAuthentication yes
+systemctl restart sshd
+---
+
+Dockerfile
+From tomcat
+COPY ./webapp.war /usr/local/tomcat/webapps
+
+--------------
+create through docker file by jenkins
+root@ip-172-31-0-139:~# docker ps
+CONTAINER ID   IMAGE          COMMAND             CREATED       STATUS       PORTS                    NAMES       
+4db33e2ee11e   gaurav_image   "catalina.sh run"   2 hours ago   Up 2 hours   0.0.0.0:8090->8080/tcp   gaurav_image
+root@ip-172-31-0-139:~# docker images
+REPOSITORY     TAG       IMAGE ID       CREATED       SIZE 
+gaurav_image   latest    407dda466388   2 hours ago   667MB
+tomcat         latest    c43a65faae57   13 days ago   667MB
+root@ip-172-31-0-139:~# docker exec -it 4db33e2ee11e /bin/bash
+root@4db33e2ee11e:/usr/local/tomcat# pwd
+/usr/local/tomcat
+root@4db33e2ee11e:/usr/local/tomcat# ls
+BUILDING.txt     LICENSE  README.md      RUNNING.txt  conf  logs            temp     webapps.dist
+CONTRIBUTING.md  NOTICE   RELEASE-NOTES  bin          lib   native-jni-lib  webapps  work        
+root@4db33e2ee11e:/usr/local/tomcat# cd webapps
+root@4db33e2ee11e:/usr/local/tomcat/webapps# ls
+webapp  webapp.war
+root@4db33e2ee11e:/usr/local/tomcat/webapps# cd webapp
+root@4db33e2ee11e:/usr/local/tomcat/webapps/webapp# ls
+META-INF  WEB-INF  index.jsp
+root@4db33e2ee11e:/usr/local/tomcat/webapps/webapp# cat index.jsp 
+<h1> Hello, Welcome to Gaurav bhola ji !!! </h1>
+<h2> Bhola Family Group </h2>
+<h3> One last test </h3>
+-------------
