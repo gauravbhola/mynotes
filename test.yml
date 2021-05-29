@@ -1,8 +1,0 @@
----
-- hosts: webserver
-  tasks:
-    - name: copy war onto tomcat server
-      copy:
-        src: /opt/docker/webapp.war
-        dest: /opt/playbooks/webapp/target/
-    
