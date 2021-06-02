@@ -1,0 +1,176 @@
+root@ip-172-31-2-65:~# hostnamectl set-hostname "K8masternode"
+root@ip-172-31-2-65:~# hostname -I
+172.31.2.65
+root@ip-172-31-2-65:~# hostname
+K8masternode
+root@ip-172-31-12-184:~# hostnamectl set-hostname "workernode1"
+root@ip-172-31-12-184:~# hostname -I
+172.31.12.184
+root@ip-172-31-4-119:~# hostnamectl set-hostname "workernode2"
+root@ip-172-31-4-119:~# hostname -I
+172.31.4.119
+vi /etc/host
+172.31.2.65 K8masternode
+172.31.12.184 workernode1
+172.31.4.119 workernode
+/bin/bash
+ping K8masternode  ping workernode1 ping workernode2
+---------------
+---for all three nodes master and worker nodes ----
+apt-get update
+apt-get install docker.io -y
+apt install python3-pip
+pip install docker-py
+systemctl enable docker.service
+systemctl restart docker.service
+docker --version
+apt-get update
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+apt-get update
+apt install tree
+tree /etc/apt/sources.list.d/
+apt-get install kubeadm kubelet kubectl -
+------
+on master node:
+kubeadm init --pod-network-cidr=10.244.0.0/16
+ now out put comes:
+ Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 172.31.2.65:6443 --token g6i5js.gr0dztt8vh7w38ez \
+        --discovery-token-ca-cert-hash sha256:318af500142acf13eb03c921749dc094ad935703e06e59572c22cd7c9a9d094d
+
+        run on master:
+        mkdir -p $HOME/.kube
+        sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        sudo chown $(id -u):$(id -g) $HOME/.kube/config 
+for network configuration:
+sudo kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml 
+
+kubectl get pods -A  check all are running
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE
+kube-system   coredns-558bd4d5db-8jzr7               1/1     Running   0          7m57s
+kube-system   coredns-558bd4d5db-j69wg               1/1     Running   0          7m57s
+kube-system   etcd-k8masternode                      1/1     Running   0          8m11s
+kube-system   kube-apiserver-k8masternode            1/1     Running   0          8m11s
+kube-system   kube-controller-manager-k8masternode   1/1     Running   0          8m14s
+kube-system   kube-flannel-ds-8w7zh                  1/1     Running   0          30s
+kube-system   kube-proxy-qsp65                       1/1     Running   0          7m57s
+kube-system   kube-scheduler-k8masternode            1/1     Running   0          8m14s
+
+join any number of worker nodes by running the following on each as root:
+
+kubeadm join 172.31.2.65:6443 --token g6i5js.gr0dztt8vh7w38ez \ --discovery-token-ca-cert-hash sha256:318af500142acf13eb03c921749dc094ad935703e06e59572c22cd7c9a9d094d
+
+Note:
+#kubeadm token list
+And check the date in the EXPIRES column. If it has expired, create a new token.
+#kubeadm token create --print-join-command
+You will now be able to join a new node using the given command
+
+root@K8masternode:~# kubectl get nodes
+NAME           STATUS   ROLES                  AGE     VERSION
+k8masternode   Ready    control-plane,master   37m     v1.21.1
+workernode1    Ready    <none>                 4m9s    v1.21.1
+workernode2    Ready    <none>                 3m38s   v1.21.1
+
+root@K8masternode:~# kubectl get pods -A   or kubectl get pods --all-namespaces
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE  
+kube-system   coredns-558bd4d5db-8jzr7               1/1     Running   0          39m  
+kube-system   coredns-558bd4d5db-j69wg               1/1     Running   0          39m  
+kube-system   etcd-k8masternode                      1/1     Running   0          39m  
+kube-system   kube-apiserver-k8masternode            1/1     Running   0          39m  
+kube-system   kube-controller-manager-k8masternode   1/1     Running   0          39m  
+kube-system   kube-flannel-ds-5nngc                  1/1     Running   0          6m8s 
+kube-system   kube-flannel-ds-8w7zh                  1/1     Running   0          32m  kube-system   kube-flannel-ds-kw4fs                  1/1     Running   0          5m37s
+kube-system   kube-proxy-mr9xc                       1/1     Running   0          6m8s 
+kube-system   kube-proxy-qsp65                       1/1     Running   0          39m  kube-system   kube-proxy-zqcml                       1/1     Running   0          5m37s
+kube-system   kube-scheduler-k8masternode            1/1     Running   0          39m  
+
+root@K8masternode:~# kubectl get nodes
+NAME           STATUS   ROLES                  AGE   VERSION
+k8masternode   Ready    control-plane,master   46m   v1.21.1
+workernode1    Ready    <none>                 12m   v1.21.1
+workernode2    Ready    <none>                 12m   v1.21.1
+root@K8masternode:~# kubectl get deployment
+No resources found in default namespace.
+root@K8masternode:~# kubectl get pods
+No resources found in default namespace.
+root@K8masternode:~# kubectl get services
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   47m
+
+kubectl create deployment --image nginx my-deployment
+kubectl scale deployment --replicas=2 my-deployment
+kubectl create deployment --image nginx --replicas=2 my-deployment
+kubectl get deployment
+kubectl get replicaset
+kubectl get pods
+kubectl get pods -o wide
+kubectl expose deployment my-deployment --port=8081 --target-port=80 --type=ClusterIP
+
+root@K8masternode:~# kubectl get deployment
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+my-deployment   2/2     2            2           97m
+root@K8masternode:~# kubectl get replicaset
+NAME                       DESIRED   CURRENT   READY   AGE
+my-deployment-57d86476b6   2         2         2       98m
+root@K8masternode:~# kubectl get pods
+NAME                             READY   STATUS    RESTARTS   AGE
+my-deployment-57d86476b6-9kcsq   1/1     Running   1          38m
+my-deployment-57d86476b6-bw6vh   1/1     Running   1          98m
+root@K8masternode:~# kubectl get pods -o wide
+NAME                             READY   STATUS    RESTARTS   AGE   IP           NODE          NOMINATED NODE   READINESS GATES
+my-deployment-57d86476b6-9kcsq   1/1     Running   1          38m   10.244.2.3   workernode2   <none>           <none>  
+my-deployment-57d86476b6-bw6vh   1/1     Running   1          98m   10.244.1.3   workernode1   <none>           <none>  
+root@K8masternode:~# kubectl get svc
+NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+kubernetes      ClusterIP   10.96.0.1       <none>        443/TCP    155m
+my-deployment   ClusterIP   10.96.201.197   <none>        8081/TCP   32m
+curl with Pod Ip and cluster IP
+curl 10.96.201.197:8081
+curl 10.244.2.3   workernode1
+curl 10.244.1.3   workernode2
+root@K8masternode:~# kubectl get endpoints
+NAME            ENDPOINTS                     AGE 
+kubernetes      172.31.2.65:6443              163m
+my-deployment   10.244.1.3:80,10.244.2.3:80   40m
+
+
+root@K8masternode:~# kubectl patch svc my-deployment -p '{"spec": {"type": "NodePort"}}'
+service/my-deployment patched
+root@K8masternode:~# kubectl get svc
+NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+kubernetes      ClusterIP   10.96.0.1       <none>        443/TCP          174m
+my-deployment   NodePort    10.96.201.197   <none>        8081:32648/TCP   51m
+
+after patched Node port can access through Node Ip and public IP
+curl 172.31.2.65:32648  http://65.2.83.211:32648/
+curl 172.31.4.119:32648 http://13.235.67.212:32648/
+curl 172.31.12.184:32648 http://13.235.87.53:32648/
+
+A ClusterIP service is the default Kubernetes service. 
+It gives you a service inside your cluster that other apps inside your cluster can access.
+ There is no external access.
+
+A NodePort service is the most primitive way to get external traffic directly to your service
+A LoadBalancer service is the standard way to expose a service to the internet
+
+
+
