@@ -1,0 +1,35 @@
+-----------------
+
+FROM httpd
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install wget zip -y
+RUN wget https://www.free-css.com/assets/files/free-css-templates/download/page273/spourmo.zip
+RUN unzip spourmo.zip
+RUN cp -rp spourmo/* htdocs/
+CMD httpd -D FOREGROUND
+
+--------------------------------------------------------------------------------------
+
+FROM ubuntu
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install wget -y
+RUN apt-get install openjdk-8-jdk -y
+RUN export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+RUN wget https://dlcdn.apache.org/tomcat/tomcat-8/v8.5.73/bin/apache-tomcat-8.5.73.tar.gz
+RUN tar -xvzf apache-tomcat-8.5.73.tar.gz
+RUN sh apache-tomcat-8.5.73/bin/startup.sh
+RUN wget https://tomcat.apache.org/tomcat-7.0-doc/appdev/sample/sample.war
+RUN cp -rp sample.war apache-tomcat-8.5.73/webapps/sample.war
+------------------
+echo $JAVA_HOME  to check environment
+------------------------------------------
+inside container check these:
+ps -aux | grep tomcat
+apache-tomcat-8.5.73/bin# ./shutdown.sh
+apache-tomcat-8.5.73/bin# ./startup.sh
+
+
+http://IP:8080/
+http://ID:8080/sample/   (sample.war)
